@@ -74,7 +74,7 @@ void gameplay::init()
 		Sexy::ThunderballApp::DoToMenu();
 	});
 
-	//Completed a level, back out to menu to load the next level as this is a requirement
+	//We completed a level, back out to menu to load the next level as this is a requirement
 	callbacks::on(callbacks::type::after_beat_level_true, []()
 	{
 		Sexy::ThunderballApp::DoToMenu();

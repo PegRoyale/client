@@ -2,12 +2,21 @@
 #include <callbacks/callbacks.hpp>
 #include "logger/logger.hpp"
 #include "gameplay/gameplay.hpp"
+#include "player/player.hpp"
+
+void update()
+{
+	//Update code here if needed
+}
 
 void init()
 {
 	logger::init("pegroyale");
 
 	gameplay::init();
+	player::init();
+
+	callbacks::on(callbacks::type::main_loop, update);
 }
 
 DWORD WINAPI OnAttachImpl(LPVOID lpParameter)
