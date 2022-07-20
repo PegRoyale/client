@@ -70,15 +70,21 @@ workspace "pegroyale"
 			"Haggle",
 		}
 
+		syslibdirs {
+			"../deps/SDL2-2.0.22/lib/x86",
+		}
+
 		links {
 			"MinHook",
 			"Haggle",
+			"SDL2",
 		}
 
 		includedirs {
 			"../src/",
 			"../deps/minhook/include/",
 			"../deps/haggle/src/haggle/",
+			"../deps/SDL2-2.0.22/include/",
 		}
 
 		files {

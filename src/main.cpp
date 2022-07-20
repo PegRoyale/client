@@ -3,18 +3,35 @@
 #include "logger/logger.hpp"
 #include "gameplay/gameplay.hpp"
 #include "player/player.hpp"
+#include "input/input.hpp"
+#include "display/display.hpp"
+#include "items/items.hpp"
 
 void update()
 {
-	//Update code here if needed
+	display::update();
+	input::update();
 }
 
 void init()
 {
 	logger::init("pegroyale");
 
+	if (SDL_Init(SDL_INIT_EVERYTHING) != 0)
+	{
+		PRINT_ERROR("Failed to start SDL2 (%s)", SDL_GetError());
+		return;
+	}
+
+	MH_Initialize();
+
+	items::init();
 	gameplay::init();
 	player::init();
+	input::init();
+	display::init();
+
+	MH_EnableHook(MH_ALL_HOOKS);
 
 	callbacks::on(callbacks::type::main_loop, update);
 }

@@ -6,12 +6,15 @@
 #include <string>
 #include <sstream>
 #include <iostream>
-#include <iomanip>
+#include <random>
+
+using namespace std::literals;
 
 #include <Windows.h>
 
 //Deps
 #include <MinHook.h>
+#include <SDL.h>
 #include <sdk/SexySDK.hpp>
 #include <callbacks/callbacks.hpp>
 #include <utils/memory.hpp>
