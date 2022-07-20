@@ -6,11 +6,17 @@
 #include "input/input.hpp"
 #include "display/display.hpp"
 #include "items/items.hpp"
+#include "networking/networking.hpp"
 
 void update()
 {
 	display::update();
 	input::update();
+}
+
+void cleanup()
+{
+	networking::cleanup();
 }
 
 void init()
@@ -31,6 +37,7 @@ void init()
 
 	MH_Initialize();
 
+	networking::init();
 	items::init();
 	gameplay::init();
 	player::init();
@@ -40,6 +47,7 @@ void init()
 	MH_EnableHook(MH_ALL_HOOKS);
 
 	callbacks::on(callbacks::type::main_loop, update);
+	std::atexit(cleanup);
 }
 
 DWORD WINAPI OnAttachImpl(LPVOID lpParameter)
