@@ -23,6 +23,12 @@ void init()
 		return;
 	}
 
+	if (enet_initialize() != 0)
+	{
+		PRINT_ERROR("Failed to start enet");
+		return;
+	}
+
 	MH_Initialize();
 
 	items::init();

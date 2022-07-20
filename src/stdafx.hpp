@@ -15,6 +15,7 @@ using namespace std::literals;
 //Deps
 #include <MinHook.h>
 #include <SDL.h>
+#include <enet/enet.h>
 #include <sdk/SexySDK.hpp>
 #include <callbacks/callbacks.hpp>
 #include <utils/memory.hpp>

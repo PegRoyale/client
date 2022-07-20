@@ -1,5 +1,5 @@
-workspace "pegroyale"
-	startproject "pegroyale"
+workspace "pr-server"
+	startproject "pr-server"
 	location "../build/"
 	targetdir "%{wks.location}/bin/%{cfg.buildcfg}-%{cfg.platform}/"
 	objdir "%{wks.location}/obj/%{prj.name}/%{cfg.buildcfg}-%{cfg.platform}/"
@@ -22,7 +22,6 @@ workspace "pegroyale"
 	}
 
 	syslibdirs {
-		"../deps/SDL2-2.0.22/lib/x86",
 		"../deps/enet-1.3.17/",
 	}
 
@@ -59,26 +58,18 @@ workspace "pegroyale"
 		runtime "debug"
 		symbols "on"
 
-	project "pegroyale"
-		targetname "pegroyale"
+	project "pr-server"
+		targetname "pr-server"
 		language "c++"
 		cppdialect "c++17"
-		kind "sharedlib"
+		kind "consoleapp"
 		warnings "off"
 
 		pchheader "stdafx.hpp"
 		pchsource "../src/stdafx.cpp"
 		forceincludes "stdafx.hpp"
 
-		dependson {
-			"MinHook",
-			"Haggle",
-		}
-
 		links {
-			"MinHook",
-			"Haggle",
-			"SDL2",
 			"enet",
 			"ws2_32",
 			"winmm",
@@ -86,63 +77,9 @@ workspace "pegroyale"
 
 		includedirs {
 			"../src/",
-			"../deps/minhook/include/",
-			"../deps/haggle/src/haggle/",
-			"../deps/SDL2-2.0.22/include/",
 			"../deps/enet-1.3.17/include/",
 		}
 
 		files {
 			"../src/**",
-		}
-
-		postbuildcommands {
-			"copy /y \"$(TargetPath)\" \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Peggle Deluxe\\mods\\\"",
-		}
-
-	group "Dependencies"
-
-	project "MinHook"
-		targetname "MinHook"
-
-		language "c++"
-		kind "staticlib"
-
-		files {
-			"../deps/minhook/src/**",
-		}
-
-		includedirs {
-			"../deps/minhook/include/",
-		}
-
-	project "Haggle"
-		targetname "haggle-sdk"
-		language "c++"
-		kind "sharedlib"
-		warnings "off"
-
-		pchheader "stdafx.hpp"
-		pchsource "../deps/haggle/src/haggle/stdafx.cpp"
-		forceincludes "stdafx.hpp"
-
-		dependson {
-			"MinHook",
-		}
-
-		links {
-			"MinHook",
-		}
-
-		includedirs {
-			"../deps/haggle/src/haggle/",
-			"../deps/minhook/include/",
-		}
-
-		files {
-			"../deps/haggle/src/haggle/**",
-		}
-
-		postbuildcommands {
-			"copy /y \"$(TargetPath)\" \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Peggle Deluxe\\mods\\\"",
 		}
