@@ -1,11 +1,13 @@
 #include "networking.hpp"
 #include "logger/logger.hpp"
+#include "input/input.hpp"
 
 bool networking::shutdown = false;
 ENetAddress networking::address;
 ENetHost* networking::client;
 ENetPeer* networking::server;
 bool networking::ready_up = false;
+bool networking::wait_for_others = true;
 
 void networking::init()
 {
@@ -29,12 +31,14 @@ void networking::init()
 		networking::shutdown = true;
 	}
 
-	callbacks::after_main_menu_update([](auto)
+	callbacks::after_start_game([](auto this_)
 	{
 		if (!networking::ready_up)
 		{
 			networking::ready_up = true;
 			networking::send_packet(proto_t::READY_UP);
+
+			while (networking::wait_for_others) Sleep(150);
 		}
 	});
 
@@ -86,22 +90,6 @@ void networking::cleanup()
 {
 	networking::shutdown = true;
 	enet_peer_disconnect(server, 0);
-
-	ENetEvent evt;
-	while (enet_host_service(client, &evt, 3000) > 0)
-	{
-		switch (evt.type)
-		{
-		case ENET_EVENT_TYPE_RECEIVE:
-			networking::handle_packet(evt.packet, evt.peer);
-			break;
-
-		case ENET_EVENT_TYPE_DISCONNECT:
-			PRINT_INFO("Atexit disconnect...");
-			break;
-		}
-	}
-
 	enet_host_destroy(client);
 }
 
@@ -147,8 +135,7 @@ void networking::handle_packet(ENetPacket* packet, ENetPeer* peer)
 		{
 			case proto_t::START_GAME:
 			{
-				Sexy::ThunderballApp::ShowLevelScreen(true);
-				Sexy::LevelScreen::DoPlay(-1);
+				networking::wait_for_others = false;
 			} break;
 		}
 	}

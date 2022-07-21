@@ -21,6 +21,7 @@ public:
 
 	static bool shutdown;
 	static bool ready_up;
+	static bool wait_for_others;
 
 private:
 	static ENetAddress address;

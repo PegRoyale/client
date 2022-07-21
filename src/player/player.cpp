@@ -22,7 +22,10 @@ void player::activate_item(int num)
 {
 	bool single = true;
 
-	Sexy::SoundMgr::AddSound(player::item_inventory[num].use_sound);
+	if (player::item_inventory[num].use_sound != 0)
+	{
+		Sexy::SoundMgr::AddSound(player::item_inventory[num].use_sound);
+	}
 
 	if (player::item_inventory[num].powerup >= 1 && player::item_inventory[num].powerup <= 13)
 	{

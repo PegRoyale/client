@@ -97,7 +97,7 @@ void gameplay::init()
 	jump(0x0045DE5C, next_board_balls_hook); //Stores balls left over to roll over into the next board
 	jump(0x0046FD82, purple_peg_hit_hook); //For attacks
 	jump(0x004701C8, green_peg_hit_hook); //For powerups
-	//jump(0x004A9286, 0x004A9291); //Instantly load level
+	jump(0x004A9286, 0x004A9291); //Instantly load level
 
 	callbacks::after_begin_turn_2([](auto logic_mgr)
 	{
