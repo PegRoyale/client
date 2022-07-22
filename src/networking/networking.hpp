@@ -10,6 +10,10 @@ enum class proto_t
 	GET_USER_LIST,
 	USE_POWEWRUP,
 	DIED,
+	NAME_CHANGE,
+	GET_LEVEL_LIST,
+	ROOMS_FULL,
+	ALREADY_IN_GAME,
 };
 
 class networking final
@@ -17,7 +21,7 @@ class networking final
 public:
 	static void init();
 	static void update();
-	static void cleanup();
+	static void disconnect();
 	static void send_packet(proto_t proto, const std::string& info = "");
 	static void create_room(const std::string& roomid, const std::string& key);
 	static void handle_packet(ENetPacket* packet, ENetPeer* peer);
@@ -26,6 +30,9 @@ public:
 	static bool ready_up;
 	static bool wait_for_others;
 	static std::vector<std::string> player_list;
+	static std::vector<int> level_order;
+	static std::string room_name;
+	static std::string room_key;
 
 private:
 	static ENetAddress address;

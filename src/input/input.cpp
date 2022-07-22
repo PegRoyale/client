@@ -1,6 +1,8 @@
 #include "input.hpp"
 #include "player/player.hpp"
+#include "display/display.hpp"
 #include "logger/logger.hpp"
+#include "networking/networking.hpp"
 
 SDL_Window* input::window = 0;
 HWND input::hwnd = 0;
@@ -28,6 +30,10 @@ void input::update()
 		case SDL_KEYDOWN:
 			input::key_down(evt.key.keysym.scancode);
 			break;
+
+		case SDL_KEYUP:
+			input::key_up(evt.key.keysym.scancode);
+			break;
 		}
 	}
 }
@@ -46,6 +52,52 @@ void input::key_down(SDL_Scancode scancode)
 
 	case SDL_SCANCODE_3:
 		input::use_item(2);
+		break;
+
+	case SDL_SCANCODE_TAB:
+		display::show_players = true;
+		break;
+
+	case SDL_SCANCODE_Q:
+		if (networking::player_list.size() == 1) return;
+
+		player::attacking--;
+
+		if (networking::player_list[player::attacking] == player::username)
+		{
+			player::attacking--;
+		}
+
+		if (player::attacking < 0)
+		{
+			player::attacking = networking::player_list.size() - 1;
+		}
+		break;
+
+	case SDL_SCANCODE_E:
+		if (networking::player_list.size() == 1) return;
+
+		player::attacking++;
+
+		if (networking::player_list[player::attacking] == player::username)
+		{
+			player::attacking++;
+		}
+
+		if (player::attacking > networking::player_list.size() - 1)
+		{
+			player::attacking = 0;
+		}
+		break;
+	}
+}
+
+void input::key_up(SDL_Scancode scancode)
+{
+	switch (scancode)
+	{
+	case SDL_SCANCODE_TAB:
+		display::show_players = false;
 		break;
 	}
 }

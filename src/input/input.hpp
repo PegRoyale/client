@@ -11,6 +11,7 @@ public:
 
 private:
 	static void key_down(SDL_Scancode scancode);
+	static void key_up(SDL_Scancode scancode);
 	static void use_item(int num);
 	static SDL_Window* window;
 	static HWND hwnd;

@@ -6,6 +6,8 @@ std::vector<item_t> player::item_inventory = { item_t{}, item_t{}, item_t{} };
 int player::multiballs = 0;
 
 std::string player::username;
+int player::attacking = 0;
+bool player::alive = true;
 
 //General statistics to show the user
 int player::levels_beat;
@@ -29,7 +31,13 @@ void player::init()
 		{
 			const char* ini_default = ""
 				"[settings]\n"
-				"username = \"Player\"";
+				"username = Player\n"
+
+				"[room]\n"
+				"name = NEW_ROOM\n"
+				"key = KEY\n";
+
+
 
 			ini = ini_create(ini_default, strlen(ini_default));
 			ini_save(ini, "mods/pegroyale.ini");
@@ -41,15 +49,10 @@ void player::init()
 	}
 
 	player::username = ini_get(ini, "settings", "username");
+	player::validate_name();
 
-	if (player::username == "Player")
-	{
-		static std::random_device rd;
-		static std::mt19937 mt(rd());
-		static std::uniform_int_distribution tag(0, 9999);
-
-		player::username = logger::va("Player-%i", tag(mt));
-	}
+	networking::room_name = std::string(ini_get(ini, "room", "name"));
+	networking::room_key = std::string(ini_get(ini, "room", "key"));
 }
 
 void player::activate_item(int num)
@@ -163,5 +166,33 @@ void player::handle_enemy_powerup(powerup_t powerup, const std::string& user)
 	case powerup_t::TAKE_BALL:
 		player::adjust_ball_count(-1, user);
 		break;
+	}
+}
+
+void player::validate_name()
+{
+	//Remove non-ascii
+	player::username.erase(std::remove_if(player::username.begin(), player::username.end(), [](auto c)
+	{
+		return !(c >= 0 && c < 128);
+	}), player::username.end());
+
+	//If username is default or less than 3 characters
+	if (player::username == "Player" || player::username.size() < 3)
+	{
+		static std::random_device rd;
+		static std::mt19937 mt(rd());
+		static std::uniform_int_distribution tag(0, 9999);
+
+		player::username = logger::va("Player-%i", tag(mt));
+	}
+
+	//If it contains spaces
+	player::username = logger::replace(player::username, " ", "_");
+
+	//If over 12 characters, shorten
+	if (player::username.size() > 12)
+	{
+		player::username = player::username.substr(0, 12);
 	}
 }

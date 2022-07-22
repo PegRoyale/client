@@ -14,6 +14,8 @@ public:
 	static std::vector<item_t> item_inventory;
 
 	static std::string username;
+	static int attacking;
+	static bool alive;
 
 	//For determining powerups that require a peg hit
 	static int multiballs;
@@ -31,4 +33,5 @@ public:
 private:
 	static void push_stats();
 	static void pull_stats();
+	static void validate_name();
 };

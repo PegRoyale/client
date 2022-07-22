@@ -16,7 +16,7 @@ void update()
 
 void cleanup()
 {
-	networking::cleanup();
+	networking::disconnect();
 }
 
 void init()

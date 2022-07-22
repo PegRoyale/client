@@ -2,13 +2,59 @@
 #include "player/player.hpp"
 #include "logger/logger.hpp"
 #include "networking/networking.hpp"
+#include "input/input.hpp"
 
 bool display::can_render_text = false;
 bool display::ready = false;
 float display::items_timeout;
+bool display::show_players = false;
+
+static int(__fastcall* Sexy__FloatingTextMgr__AddText_)(char*, char*);
+int __fastcall Sexy__FloatingTextMgr__AddText(char* this_, char* edx)
+{
+	auto v3 = *((_DWORD*)this_ + 3);
+
+	if (v3 != 0x0)
+	{
+		return Sexy__FloatingTextMgr__AddText_(this_, edx);
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+void __declspec(naked) add_standard_text_null_fix()
+{
+	//Actually doesn't fix anything right now
+	__asm
+	{
+		push ebp;
+		mov ebp, esp;
+		mov eax, [ecx + 104h];
+		mov ecx, [eax + 148h];
+		push esi;
+		call Sexy__FloatingTextMgr__AddText;
+		mov esi, eax;
+
+		test esi, esi;
+		jz leave_func;
+
+		push 0x00469EC7;
+		retn;
+
+	leave_func:
+		push 0x00469F21;
+		retn;
+	}
+}
 
 void display::init()
 {
+	MH_CreateHook((void*)0x00469D20, Sexy__FloatingTextMgr__AddText, (void**)&Sexy__FloatingTextMgr__AddText_);
+	//jump(0x00469EB0, add_standard_text_null_fix);
+
+
 	callbacks::on(callbacks::type::begin_turn_2, []()
 	{
 		display::ready = true;
@@ -22,7 +68,7 @@ void display::init()
 
 	callbacks::on(callbacks::type::finish_options_dialog, []()
 	{
-		if(display::ready) display::can_render_text = true;
+		if (display::ready) display::can_render_text = true;
 	});
 
 	callbacks::on(callbacks::type::do_options_dialog, []()
@@ -32,7 +78,14 @@ void display::init()
 
 	callbacks::on(callbacks::type::do_to_menu, []()
 	{
-		if (display::ready) display::can_render_text = false;
+		display::ready = false;
+		display::can_render_text = false;
+	});
+
+	callbacks::on(callbacks::type::show_level_screen, []()
+	{
+		display::ready = false;
+		display::can_render_text = false;
 	});
 
 	callbacks::on_begin_shot([](auto, auto)
@@ -88,25 +141,48 @@ void display::update()
 				++display::items_timeout;
 			}
 
-			Sexy::FloatingText_* header = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
-							Sexy::Format("Players:"),
-							500.0f,
-							25.0f,
-							14
-			);
-			header->unk_1 = 1;
-			header->float_offset_start = 0.0f;
-
-			for (auto i = 0; i < networking::player_list.size(); ++i)
+			if (display::show_players)
 			{
-				Sexy::FloatingText_* player = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
-							Sexy::Format("%s", networking::player_list[i].c_str()),
-							500.0f,
-							25.0f + (25.0f * (i + 1)),
-							14
+				Sexy::FloatingText_* header = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
+								Sexy::Format("Players:"),
+								500.0f,
+								25.0f,
+								14
 				);
-				player->unk_1 = 1;
-				player->float_offset_start = 0.0f;
+				header->unk_1 = 1;
+				header->float_offset_start = 0.0f;
+
+				for (auto i = 0; i < networking::player_list.size(); ++i)
+				{
+					std::string player_name = networking::player_list[i];
+					std::string attacking_player_name = networking::player_list[player::attacking];
+
+					if (player_name == attacking_player_name && player_name != player::username)
+					{
+						player_name.insert(0, "* ");
+					}
+
+					Sexy::FloatingText_* player = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
+								Sexy::Format("%s", player_name.c_str()),
+								500.0f,
+								25.0f + (25.0f * (i + 1)),
+								14
+					);
+
+					//Self
+					if (player_name == player::username)
+					{
+						player->color = 0x008CFF;
+					}
+					//Attacking player
+					else if (player_name == attacking_player_name && player_name != player::username)
+					{
+						player->color = 0xFF2929;
+					}
+
+					player->unk_1 = 1;
+					player->float_offset_start = 0.0f;
+				}
 			}
 		}
 	}

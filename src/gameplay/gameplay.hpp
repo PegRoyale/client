@@ -7,6 +7,7 @@ public:
 	static void reset();
 
 	static int balls_left;
+	static bool prompted_leave;
 
 private:
 	static void purple_peg_hit();

@@ -8,8 +8,11 @@ ENetAddress networking::address;
 ENetHost* networking::client;
 ENetPeer* networking::server;
 bool networking::ready_up = false;
-bool networking::wait_for_others = true;
+bool networking::wait_for_others = false;
 std::vector<std::string> networking::player_list;
+std::vector<int> networking::level_order;
+std::string networking::room_name = "NEW_ROOM";
+std::string networking::room_key = "KEY";
 
 void networking::init()
 {
@@ -32,17 +35,6 @@ void networking::init()
 		PRINT_ERROR("Shutting down (%i)", 1);
 		networking::shutdown = true;
 	}
-
-	callbacks::after_start_game([](auto this_)
-	{
-		if (!networking::ready_up)
-		{
-			networking::ready_up = true;
-			networking::send_packet(proto_t::READY_UP);
-
-			while (networking::wait_for_others) Sleep(150);
-		}
-	});
 
 	networking::update();
 }
@@ -67,19 +59,22 @@ void networking::update()
 					{
 						PRINT_INFO("Connected to the server");
 
-						std::string packet = logger::va("name=%s;roomid=NEW_ROOM;key=KEY", player::username.c_str());
+						std::string packet = logger::va("name=%s;roomid=%s;key=%s", player::username.c_str(),
+							networking::room_name.c_str(), networking::room_key.c_str());
 
-						networking::create_room("NEW_ROOM", "KEY");
+						networking::create_room(networking::room_name, networking::room_key);
 						networking::send_packet(proto_t::NEW_USER, packet);
 					} break;
 
 					case ENET_EVENT_TYPE_DISCONNECT:
 						PRINT_INFO("Disconnect from the server");
-						if (!networking::shutdown)
+
+						if (!networking::shutdown && player::alive)
 						{
 							MessageBoxA(nullptr, "Disconnected from the server!", "PegRoyale", 0);
 							exit(0);
 						}
+
 						break;
 					}
 			}
@@ -88,11 +83,11 @@ void networking::update()
 	}).detach();
 }
 
-void networking::cleanup()
+void networking::disconnect()
 {
 	networking::shutdown = true;
 	enet_peer_disconnect(server, 0);
-	enet_host_destroy(client);
+	//enet_host_destroy(client);
 }
 
 void networking::send_packet(proto_t proto, const std::string& info)
@@ -140,13 +135,53 @@ void networking::handle_packet(ENetPacket* packet, ENetPeer* peer)
 				networking::wait_for_others = false;
 			} break;
 
+			case proto_t::NAME_CHANGE:
+			{
+				std::string new_name;
+
+				for (auto i = 1; i < split_packet.size(); ++i)
+				{
+					if (split_packet[i].find("name") != std::string::npos)
+					{
+						new_name = logger::split(split_packet[i], "=")[1];
+						continue;
+					}
+				}
+
+				player::username = new_name;
+			} break;
+
 			case proto_t::GET_USER_LIST:
 			{
+				networking::player_list.clear();
 				for (auto i = 1; i < split_packet.size(); ++i)
 				{
 					auto user = logger::split(split_packet[i], "=")[1];
 					networking::player_list.emplace_back(user);
 				}
+			} break;
+
+			case proto_t::ALREADY_IN_GAME:
+			{
+				networking::shutdown = true;
+				MessageBoxA(nullptr, "This room already has a match in session!", "PegRoyale", 0);
+				exit(0);
+			} break;
+
+			case proto_t::GET_LEVEL_LIST:
+			{
+				for (auto i = 1; i < split_packet.size(); ++i)
+				{
+					auto level = std::stoi(logger::split(split_packet[i], "=")[1]);
+					networking::level_order.emplace_back(level);
+				}
+			} break;
+
+			case proto_t::ROOMS_FULL:
+			{
+				networking::shutdown = true;
+				MessageBoxA(nullptr, "Maximum number of rooms reached on the server!", "PegRoyale", 0);
+				exit(0);
 			} break;
 
 			case proto_t::USE_POWEWRUP:

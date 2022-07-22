@@ -3,10 +3,13 @@
 #include "player/player.hpp"
 #include "items/items.hpp"
 #include "logger/logger.hpp"
+#include "networking/networking.hpp"
+#include "input/input.hpp"
 
 int gameplay::balls_left = 10;
 Sexy::PhysObj* gameplay::last_phys_obj;
 Sexy::Ball* gameplay::last_ball;
+bool gameplay::prompted_leave = true;
 
 void __declspec(naked) next_board_balls_hook()
 {
@@ -92,12 +95,25 @@ void __declspec(naked) green_peg_hit_hook()
 	}
 }
 
+static int(__fastcall* Sexy__Board__Pause_)(Sexy::Board*, char*, bool);
+int __fastcall Sexy__Board__Pause(Sexy::Board* this_, char* edx, bool pause)
+{
+	return 0;
+	//auto retn = Sexy__Board__Pause_(this_, edx, pause);
+}
+
 void gameplay::init()
 {
 	jump(0x0045DE5C, next_board_balls_hook); //Stores balls left over to roll over into the next board
 	jump(0x0046FD82, purple_peg_hit_hook); //For attacks
 	jump(0x004701C8, green_peg_hit_hook); //For powerups
-	jump(0x004A9286, 0x004A9291); //Instantly load level
+	//jump(0x004A9286, 0x004A9291); //Instantly load level
+	set(0x00538241 + 0x1, "pegroyale.pak");
+	retn_value(0x00405CF0, 1000); //Max locked stage
+	retn_value(0x00405D40, 1000); //Max locked level
+
+	MH_CreateHook((void*)0x004025C0, Sexy__Board__Pause, (void**)&Sexy__Board__Pause_);
+
 
 	callbacks::after_begin_turn_2([](auto logic_mgr)
 	{
@@ -124,8 +140,9 @@ void gameplay::init()
 	//Possible show a game over message, what rank they made it to, stats, etc
 	callbacks::on(callbacks::type::after_beat_level_false, []()
 	{
+		player::alive = false;
 		gameplay::reset();
-		Sexy::ThunderballApp::DoToMenu();
+		networking::send_packet(proto_t::DIED);
 		MessageBoxA(nullptr, "Game Over!", "PegRoyale", 0);
 		exit(0);
 	});
@@ -133,8 +150,73 @@ void gameplay::init()
 	//We completed a level, back out to menu to load the next level as this is a requirement
 	callbacks::on(callbacks::type::after_beat_level_true, []()
 	{
+		gameplay::prompted_leave = true;
 		display::can_render_text = false;
-		Sexy::ThunderballApp::DoToMenu();
+		++player::levels_beat;
+		Sexy::ThunderballApp::ShowLevelScreen(true);
+	});
+
+	callbacks::on(callbacks::type::after_show_level_screen, []()
+	{
+		if (!networking::ready_up)
+		{
+			networking::ready_up = true;
+			networking::send_packet(proto_t::READY_UP);
+			networking::wait_for_others = true;
+
+			while (networking::wait_for_others) Sleep(150);
+		}
+
+		Sexy::LevelScreen::DoPlay(networking::level_order[player::levels_beat]);
+	});
+
+	//callbacks::on(callbacks::type::main_loop, []()
+	//{
+	//	static bool once = false;
+
+	//	if (networking::wait_for_others)
+	//	{
+	//		//input::move_cursor({ 0, 0 });
+
+	//		if (!once)
+	//		{
+	//			once = true;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		PRINT_INFO("NO longer waiting for others");
+	//		if (once)
+	//		{
+	//			Sexy::LevelScreen::DoPlay(networking::level_order[player::levels_beat]);
+	//			once = false;
+	//		}
+	//	}
+	//});
+
+	callbacks::on(callbacks::type::do_to_menu, []()
+	{
+		if (!gameplay::prompted_leave)
+		{
+			exit(0);
+		}
+		else if(gameplay::prompted_leave)
+		{
+			gameplay::prompted_leave = false;
+		}
+	});
+
+	callbacks::on(callbacks::type::show_level_screen, []()
+	{
+		if (!gameplay::prompted_leave)
+		{
+			exit(0);
+		}
+		else if (gameplay::prompted_leave)
+		{
+			gameplay::prompted_leave = false;
+			Sexy::LevelScreen::DoPlay(-1);
+		}
 	});
 }
 
