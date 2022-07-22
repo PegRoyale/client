@@ -1,5 +1,10 @@
 #pragma once
 
+enum powerup_t : int
+{
+	TAKE_BALL = 14,
+};
+
 struct item_t
 {
 	int powerup;
@@ -7,7 +12,7 @@ struct item_t
 	std::string name;
 	std::uint32_t color;
 	int count;
-	bool on_next_turn;
+	bool during_shot;
 };
 
 class items

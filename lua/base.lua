@@ -73,6 +73,7 @@ workspace "pegroyale"
 		dependson {
 			"MinHook",
 			"Haggle",
+			"ini_rw",
 		}
 
 		links {
@@ -82,6 +83,7 @@ workspace "pegroyale"
 			"enet",
 			"ws2_32",
 			"winmm",
+			"ini_rw",
 		}
 
 		includedirs {
@@ -90,6 +92,7 @@ workspace "pegroyale"
 			"../deps/haggle/src/haggle/",
 			"../deps/SDL2-2.0.22/include/",
 			"../deps/enet-1.3.17/include/",
+			"../deps/ini_rw/src/",
 		}
 
 		files {
@@ -145,4 +148,16 @@ workspace "pegroyale"
 
 		postbuildcommands {
 			"copy /y \"$(TargetPath)\" \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Peggle Deluxe\\mods\\\"",
+		}
+
+	project "ini_rw"
+		language "c"
+		kind "staticlib"
+
+		files {
+			"../deps/ini_rw/src/**",
+		}
+
+		includedirs {
+			"../deps/ini_rw/src/",
 		}

@@ -1,6 +1,7 @@
 #include "display.hpp"
 #include "player/player.hpp"
 #include "logger/logger.hpp"
+#include "networking/networking.hpp"
 
 bool display::can_render_text = false;
 bool display::ready = false;
@@ -85,6 +86,27 @@ void display::update()
 				}
 
 				++display::items_timeout;
+			}
+
+			Sexy::FloatingText_* header = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
+							Sexy::Format("Players:"),
+							500.0f,
+							25.0f,
+							14
+			);
+			header->unk_1 = 1;
+			header->float_offset_start = 0.0f;
+
+			for (auto i = 0; i < networking::player_list.size(); ++i)
+			{
+				Sexy::FloatingText_* player = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
+							Sexy::Format("%s", networking::player_list[i].c_str()),
+							500.0f,
+							25.0f + (25.0f * (i + 1)),
+							14
+				);
+				player->unk_1 = 1;
+				player->float_offset_start = 0.0f;
 			}
 		}
 	}

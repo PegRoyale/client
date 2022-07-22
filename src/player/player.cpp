@@ -1,7 +1,11 @@
 #include "player.hpp"
+#include "networking/networking.hpp"
+#include "logger/logger.hpp"
 
 std::vector<item_t> player::item_inventory = { item_t{}, item_t{}, item_t{} };
 int player::multiballs = 0;
+
+std::string player::username;
 
 //General statistics to show the user
 int player::levels_beat;
@@ -15,18 +19,55 @@ int player::buckets_sunk;
 
 void player::init()
 {
+	ini_t* ini;
 
+	//This runs before the mod loader switches the directory back, maybe look into a mod init import function eventually for haggle
+	if (!std::filesystem::exists("mods/pegroyale.ini"))
+	{
+		//Check again because the file path changes
+		if (!std::filesystem::exists("mods/pegroyale.ini"))
+		{
+			const char* ini_default = ""
+				"[settings]\n"
+				"username = \"Player\"";
+
+			ini = ini_create(ini_default, strlen(ini_default));
+			ini_save(ini, "mods/pegroyale.ini");
+		}
+	}
+	else if (std::filesystem::exists("mods/pegroyale.ini"))
+	{
+		ini = ini_load("mods/pegroyale.ini");
+	}
+
+	player::username = ini_get(ini, "settings", "username");
+
+	if (player::username == "Player")
+	{
+		static std::random_device rd;
+		static std::mt19937 mt(rd());
+		static std::uniform_int_distribution tag(0, 9999);
+
+		player::username = logger::va("Player-%i", tag(mt));
+	}
 }
 
 void player::activate_item(int num)
 {
-	bool single = true;
+	auto state = Sexy::LogicMgr::GetState();
+
+	//Checks to see if you cannot use it right now
+	if (!player::item_inventory[num].during_shot && state == Sexy::LogicMgr::State::Shot)
+	{
+		return;
+	}
 
 	if (player::item_inventory[num].use_sound != 0)
 	{
 		Sexy::SoundMgr::AddSound(player::item_inventory[num].use_sound);
 	}
 
+	//Checks to see if in-game powerup
 	if (player::item_inventory[num].powerup >= 1 && player::item_inventory[num].powerup <= 13)
 	{
 		switch (player::item_inventory[num].powerup)
@@ -46,15 +87,15 @@ void player::activate_item(int num)
 			break;
 		}
 	}
+	//Or if its custom
 	else
 	{
-		//Custom
+		networking::send_packet(proto_t::USE_POWEWRUP, logger::va("powerup=%i;", player::item_inventory[num].powerup));
 	}
 
 	switch (player::item_inventory[num].powerup)
 	{
 	case Sexy::PowerupType::SuperGuide:
-		single = false;
 		Sexy::LogicMgr::ActivatePowerup(Sexy::PowerupType::SuperGuide, 1);
 		break;
 	}
@@ -70,4 +111,57 @@ void player::activate_item(int num)
 void player::reset()
 {
 	player::multiballs = 0;
+}
+
+void player::adjust_ball_count(int count, const std::string& player)
+{
+	if (count == 0)
+	{
+		count = -1;
+	}
+
+	std::string message;
+
+	if (count >= 1)
+	{
+		Sexy::LogicMgr::IncNumBalls(count, 0, false);
+		Sexy::SoundMgr::AddSound(Sexy::Assets::get(Sexy::Asset::SOUND_AAH));
+
+		if (count == 1)
+		{
+			message = Sexy::Format("%s gave a ball!", player.c_str());
+		}
+		else
+		{
+			message = Sexy::Format("%s gave some balls!", player.c_str());
+		}
+
+		Sexy::LogicMgr::AddStandardText(message, 330.0f, 200.0f, 48);
+	}
+	else if (count < 0)
+	{
+		Sexy::LogicMgr::IncNumBalls(count, 0, true);
+		Sexy::SoundMgr::AddSound(Sexy::Assets::get(Sexy::Asset::SOUND_COINSPIN_NO));
+
+		if (count == -1)
+		{
+			message = Sexy::Format("%s took a ball!", player.c_str());
+		}
+		else
+		{
+			message = Sexy::Format("%s took some balls!", player.c_str());
+		}
+
+		Sexy::LogicMgr::AddStandardText(message, 330.0f, 200.0f, 48);
+	}
+}
+
+void player::handle_enemy_powerup(powerup_t powerup, const std::string& user)
+{
+	switch (powerup)
+	{
+	case powerup_t::TAKE_BALL:
+		player::adjust_ball_count(-1, user);
+		break;
+	}
 }

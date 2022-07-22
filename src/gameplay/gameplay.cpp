@@ -126,6 +126,8 @@ void gameplay::init()
 	{
 		gameplay::reset();
 		Sexy::ThunderballApp::DoToMenu();
+		MessageBoxA(nullptr, "Game Over!", "PegRoyale", 0);
+		exit(0);
 	});
 
 	//We completed a level, back out to menu to load the next level as this is a requirement
@@ -133,7 +135,6 @@ void gameplay::init()
 	{
 		display::can_render_text = false;
 		Sexy::ThunderballApp::DoToMenu();
-		Sexy::ThunderballApp::ShowLevelScreen(true);
 	});
 }
 

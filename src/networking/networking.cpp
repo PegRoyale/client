@@ -1,6 +1,7 @@
 #include "networking.hpp"
 #include "logger/logger.hpp"
 #include "input/input.hpp"
+#include "player/player.hpp"
 
 bool networking::shutdown = false;
 ENetAddress networking::address;
@@ -8,6 +9,7 @@ ENetHost* networking::client;
 ENetPeer* networking::server;
 bool networking::ready_up = false;
 bool networking::wait_for_others = true;
+std::vector<std::string> networking::player_list;
 
 void networking::init()
 {
@@ -20,7 +22,7 @@ void networking::init()
 		networking::shutdown = true;
 	}
 
-	enet_address_set_host(&address, "127.0.0.1");
+	enet_address_set_host(&address, "71.45.142.6");
 	address.port = 23363;
 	server = enet_host_connect(client, &address, 2, 0);
 
@@ -65,12 +67,7 @@ void networking::update()
 					{
 						PRINT_INFO("Connected to the server");
 
-						static std::random_device rd;
-						static std::mt19937 mt(rd());
-						static std::uniform_int_distribution tag(0, 9999);
-
-						std::string packet = std::string("name=TestUser-").append(logger::va("%i;", tag(mt)));
-						packet.append("roomid=NEW_ROOM;key=KEY");
+						std::string packet = logger::va("name=%s;roomid=NEW_ROOM;key=KEY", player::username.c_str());
 
 						networking::create_room("NEW_ROOM", "KEY");
 						networking::send_packet(proto_t::NEW_USER, packet);
@@ -78,6 +75,11 @@ void networking::update()
 
 					case ENET_EVENT_TYPE_DISCONNECT:
 						PRINT_INFO("Disconnect from the server");
+						if (!networking::shutdown)
+						{
+							MessageBoxA(nullptr, "Disconnected from the server!", "PegRoyale", 0);
+							exit(0);
+						}
 						break;
 					}
 			}
@@ -136,6 +138,37 @@ void networking::handle_packet(ENetPacket* packet, ENetPeer* peer)
 			case proto_t::START_GAME:
 			{
 				networking::wait_for_others = false;
+			} break;
+
+			case proto_t::GET_USER_LIST:
+			{
+				for (auto i = 1; i < split_packet.size(); ++i)
+				{
+					auto user = logger::split(split_packet[i], "=")[1];
+					networking::player_list.emplace_back(user);
+				}
+			} break;
+
+			case proto_t::USE_POWEWRUP:
+			{
+				powerup_t powerup = powerup_t::TAKE_BALL;
+				std::string user;
+
+				for (auto i = 1; i < split_packet.size(); ++i)
+				{
+					if (split_packet[i].find("powerup") != std::string::npos)
+					{
+						powerup = (powerup_t)std::stoi(logger::split(split_packet[i], "=")[1]);
+						continue;
+					}
+					else if (split_packet[i].find("user") != std::string::npos)
+					{
+						user = logger::split(split_packet[i], "=")[1];
+						continue;
+					}
+				}
+
+				player::handle_enemy_powerup(powerup, user);
 			} break;
 		}
 	}

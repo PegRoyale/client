@@ -8,8 +8,12 @@ public:
 	static void init();
 	static void activate_item(int num);
 	static void reset();
+	static void handle_enemy_powerup(powerup_t powerup, const std::string& user = "A Player");
+	static void adjust_ball_count(int count, const std::string& player = "A Player");
 
 	static std::vector<item_t> item_inventory;
+
+	static std::string username;
 
 	//For determining powerups that require a peg hit
 	static int multiballs;

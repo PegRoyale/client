@@ -7,6 +7,9 @@ enum class proto_t
 	NEW_USER,
 	READY_UP,
 	START_GAME,
+	GET_USER_LIST,
+	USE_POWEWRUP,
+	DIED,
 };
 
 class networking final
@@ -22,6 +25,7 @@ public:
 	static bool shutdown;
 	static bool ready_up;
 	static bool wait_for_others;
+	static std::vector<std::string> player_list;
 
 private:
 	static ENetAddress address;
