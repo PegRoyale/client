@@ -18,7 +18,7 @@ void input::update()
 	{
 		input::hwnd = FindWindowA(0, "Peggle Deluxe 1.01");
 		input::window = SDL_CreateWindowFrom(hwnd);
-		SetWindowTextA(hwnd, "PegRoyale");
+		SetWindowTextA(hwnd, logger::va("PegRoyale | Room: %s | Players: %i", networking::room_name.c_str(), 1).c_str());
 	}
 
 	static SDL_Event evt;
@@ -63,6 +63,11 @@ void input::key_down(SDL_Scancode scancode)
 
 		player::attacking--;
 
+		if (player::attacking < 0)
+		{
+			player::attacking = networking::player_list.size() - 1;
+		}
+
 		if (networking::player_list[player::attacking] == player::username)
 		{
 			player::attacking--;
@@ -78,6 +83,11 @@ void input::key_down(SDL_Scancode scancode)
 		if (networking::player_list.size() == 1) return;
 
 		player::attacking++;
+
+		if (player::attacking > networking::player_list.size() - 1)
+		{
+			player::attacking = 0;
+		}
 
 		if (networking::player_list[player::attacking] == player::username)
 		{

@@ -19,6 +19,37 @@ void cleanup()
 	networking::disconnect();
 }
 
+std::initializer_list<std::string> ext_whitelist
+{
+	".dll",
+	".asi",
+};
+
+bool ends_with(std::string const& value, std::string const& ending)
+{
+	if (ending.size() > value.size()) return false;
+	return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
+
+static HANDLE(__stdcall* oCreateFile)(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile);
+
+HANDLE __stdcall create_file(LPCSTR lpFileName, DWORD dwDesiredAccess, DWORD dwShareMode, LPSECURITY_ATTRIBUTES lpSecurityAttributes,
+	DWORD dwCreationDisposition, DWORD dwFlagsAndAttributes, HANDLE hTemplateFile)
+{
+	std::string file_name = std::string(lpFileName);
+	std::string path = "data/game/";
+	path.append(file_name);
+
+	if (std::filesystem::exists(path))
+	{
+		return oCreateFile(path.c_str(), dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+	}
+
+	return oCreateFile(lpFileName, dwDesiredAccess, dwShareMode, lpSecurityAttributes, dwCreationDisposition, dwFlagsAndAttributes, hTemplateFile);
+}
+
 void init()
 {
 	logger::init("pegroyale");
@@ -36,6 +67,8 @@ void init()
 	}
 
 	MH_Initialize();
+
+	MH_CreateHookApi(L"kernel32.dll", "CreateFileA", (void**)&create_file, (void**)&oCreateFile);
 
 	networking::init();
 	items::init();

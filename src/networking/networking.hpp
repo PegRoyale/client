@@ -14,6 +14,7 @@ enum class proto_t
 	GET_LEVEL_LIST,
 	ROOMS_FULL,
 	ALREADY_IN_GAME,
+	CHECK_SERVER_ALIVE,
 };
 
 class networking final
@@ -25,6 +26,7 @@ public:
 	static void send_packet(proto_t proto, const std::string& info = "");
 	static void create_room(const std::string& roomid, const std::string& key);
 	static void handle_packet(ENetPacket* packet, ENetPeer* peer);
+	static void check_alive();
 
 	static bool shutdown;
 	static bool ready_up;
@@ -33,6 +35,7 @@ public:
 	static std::vector<int> level_order;
 	static std::string room_name;
 	static std::string room_key;
+	static bool server_alive;
 
 private:
 	static ENetAddress address;

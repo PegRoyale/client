@@ -8,11 +8,12 @@ ENetAddress networking::address;
 ENetHost* networking::client;
 ENetPeer* networking::server;
 bool networking::ready_up = false;
-bool networking::wait_for_others = false;
+bool networking::wait_for_others = true;
 std::vector<std::string> networking::player_list;
 std::vector<int> networking::level_order;
 std::string networking::room_name = "NEW_ROOM";
 std::string networking::room_key = "KEY";
+bool networking::server_alive = false;
 
 void networking::init()
 {
@@ -37,6 +38,7 @@ void networking::init()
 	}
 
 	networking::update();
+	networking::check_alive();
 }
 
 void networking::update()
@@ -64,6 +66,7 @@ void networking::update()
 
 						networking::create_room(networking::room_name, networking::room_key);
 						networking::send_packet(proto_t::NEW_USER, packet);
+						networking::send_packet(proto_t::GET_USER_LIST);
 					} break;
 
 					case ENET_EVENT_TYPE_DISCONNECT:
@@ -78,6 +81,9 @@ void networking::update()
 						break;
 					}
 			}
+
+			SetWindowTextA(input::hwnd, logger::va("PegRoyale | Room: %s | Players: %i", networking::room_name.c_str(), networking::player_list.size()).c_str());
+
 			std::this_thread::sleep_for(16ms);
 		}
 	}).detach();
@@ -154,16 +160,19 @@ void networking::handle_packet(ENetPacket* packet, ENetPeer* peer)
 			case proto_t::GET_USER_LIST:
 			{
 				networking::player_list.clear();
+
 				for (auto i = 1; i < split_packet.size(); ++i)
 				{
 					auto user = logger::split(split_packet[i], "=")[1];
 					networking::player_list.emplace_back(user);
 				}
+
+
 			} break;
 
 			case proto_t::ALREADY_IN_GAME:
 			{
-				networking::shutdown = true;
+				networking::send_packet(proto_t::DIED);
 				MessageBoxA(nullptr, "This room already has a match in session!", "PegRoyale", 0);
 				exit(0);
 			} break;
@@ -205,6 +214,17 @@ void networking::handle_packet(ENetPacket* packet, ENetPeer* peer)
 
 				player::handle_enemy_powerup(powerup, user);
 			} break;
+
+			case proto_t::CHECK_SERVER_ALIVE:
+			{
+				networking::server_alive = true;
+			} break;
 		}
 	}
+}
+
+void networking::check_alive()
+{
+	networking::server_alive = false;
+	networking::send_packet(proto_t::CHECK_SERVER_ALIVE);
 }

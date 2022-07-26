@@ -60,7 +60,7 @@ workspace "pegroyale"
 		symbols "on"
 
 	project "pegroyale"
-		targetname "pegroyale"
+		targetname "PegRoyale"
 		language "c++"
 		cppdialect "c++17"
 		kind "sharedlib"
@@ -77,6 +77,7 @@ workspace "pegroyale"
 		}
 
 		links {
+			"delayimp",
 			"MinHook",
 			"Haggle",
 			"SDL2",
@@ -99,8 +100,58 @@ workspace "pegroyale"
 			"../src/**",
 		}
 
+		removefiles {
+			"../src/loader/**",
+		}
+
 		postbuildcommands {
-			"copy /y \"$(TargetPath)\" \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Peggle Deluxe\\mods\\\"",
+			"copy /y \"$(TargetPath)\" \"G:\\PegRoyale\\data\\bins\\\"",
+		}
+
+		linkoptions {
+			"/NXCOMPAT:NO",
+			"/IGNORE:4254",
+			"/DYNAMICBASE:NO",
+			"/SAFESEH:NO",
+			"/LARGEADDRESSAWARE",
+			"/LAST:.main",
+		}
+
+	project "loader"
+		targetname "PegRoyale"
+		language "c++"
+		cppdialect "c++17"
+		kind "windowedapp"
+		warnings "off"
+
+		dependson {
+			"ini_rw",
+		}
+
+		links {
+			"ini_rw",
+		}
+
+		includedirs {
+			"../src/loader/",
+			"../deps/ini_rw/src/",
+		}
+
+		files {
+			"../src/loader/**",
+		}
+
+		postbuildcommands {
+			"copy /y \"$(TargetPath)\" \"G:\\PegRoyale\\\"",
+		}
+
+		linkoptions {
+			"/NXCOMPAT:NO",
+			"/IGNORE:4254",
+			"/DYNAMICBASE:NO",
+			"/SAFESEH:NO",
+			"/LARGEADDRESSAWARE",
+			"/LAST:.main",
 		}
 
 	group "Dependencies"
@@ -147,7 +198,7 @@ workspace "pegroyale"
 		}
 
 		postbuildcommands {
-			"copy /y \"$(TargetPath)\" \"C:\\Program Files (x86)\\Steam\\steamapps\\common\\Peggle Deluxe\\mods\\\"",
+			"copy /y \"$(TargetPath)\" \"G:\\PegRoyale\\data\\bins\\\"",
 		}
 
 	project "ini_rw"

@@ -46,18 +46,17 @@ public:
 
 	static void init(const char* title)
 	{
-		if (GetConsoleWindow() == NULL)
-		{
-			std::ios_base::sync_with_stdio(false);
+		std::ios_base::sync_with_stdio(false);
 
-			file = std::fopen(logger::va("server.log", title).c_str(), "wb");
+		file = std::fopen(logger::va("data/logs/%s.log", title).c_str(), "wb");
 
-			AllocConsole();
-			SetConsoleTitleA(title);
+#ifdef DEBUG
+		AllocConsole();
+		SetConsoleTitleA(title);
 
-			std::freopen("CONOUT$", "w", stdout);
-			std::freopen("CONIN$", "r", stdin);
-		}
+		std::freopen("CONOUT$", "w", stdout);
+		std::freopen("CONIN$", "r", stdin);
+#endif
 	}
 
 	static std::string va(const char* fmt, ...)

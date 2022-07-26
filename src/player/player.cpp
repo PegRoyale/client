@@ -24,10 +24,10 @@ void player::init()
 	ini_t* ini;
 
 	//This runs before the mod loader switches the directory back, maybe look into a mod init import function eventually for haggle
-	if (!std::filesystem::exists("mods/pegroyale.ini"))
+	if (!std::filesystem::exists("data/pegroyale.ini"))
 	{
 		//Check again because the file path changes
-		if (!std::filesystem::exists("mods/pegroyale.ini"))
+		if (!std::filesystem::exists("data/pegroyale.ini"))
 		{
 			const char* ini_default = ""
 				"[settings]\n"
@@ -40,12 +40,12 @@ void player::init()
 
 
 			ini = ini_create(ini_default, strlen(ini_default));
-			ini_save(ini, "mods/pegroyale.ini");
+			ini_save(ini, "data/pegroyale.ini");
 		}
 	}
-	else if (std::filesystem::exists("mods/pegroyale.ini"))
+	else if (std::filesystem::exists("data/pegroyale.ini"))
 	{
-		ini = ini_load("mods/pegroyale.ini");
+		ini = ini_load("data/pegroyale.ini");
 	}
 
 	player::username = ini_get(ini, "settings", "username");
@@ -53,6 +53,11 @@ void player::init()
 
 	networking::room_name = std::string(ini_get(ini, "room", "name"));
 	networking::room_key = std::string(ini_get(ini, "room", "key"));
+
+	if (networking::room_key == "")
+	{
+		networking::room_key = "_";
+	}
 }
 
 void player::activate_item(int num)
@@ -93,7 +98,8 @@ void player::activate_item(int num)
 	//Or if its custom
 	else
 	{
-		networking::send_packet(proto_t::USE_POWEWRUP, logger::va("powerup=%i;", player::item_inventory[num].powerup));
+		std::string attacking = networking::player_list[player::attacking];
+		networking::send_packet(proto_t::USE_POWEWRUP, logger::va("powerup=%i;attacking=%s;", player::item_inventory[num].powerup, attacking.c_str()));
 	}
 
 	switch (player::item_inventory[num].powerup)

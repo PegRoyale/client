@@ -11,7 +11,7 @@ Sexy::PhysObj* gameplay::last_phys_obj;
 Sexy::Ball* gameplay::last_ball;
 bool gameplay::prompted_leave = true;
 
-void __declspec(naked) next_board_balls_hook()
+void __declspec(naked) next_boards_balls_hook()
 {
 	static constexpr std::uint32_t retn_addr = 0x0045DE61;
 	__asm
@@ -102,17 +102,41 @@ int __fastcall Sexy__Board__Pause(Sexy::Board* this_, char* edx, bool pause)
 	//auto retn = Sexy__Board__Pause_(this_, edx, pause);
 }
 
+static int(__fastcall* Sexy__ThunderballApp__GetMaxLockedStage_)(Sexy::ThunderballApp*, char*);
+int __fastcall Sexy__ThunderballApp__GetMaxLockedStage(Sexy::ThunderballApp* this_, char* edx)
+{
+	return 1000;
+}
+
+static int(__fastcall* Sexy__ThunderballApp__GetMaxLockedLevel_)(Sexy::ThunderballApp*, char*);
+int __fastcall Sexy__ThunderballApp__GetMaxLockedLevel(Sexy::ThunderballApp* this_, char* edx)
+{
+	return 1000;
+}
+
+static char*(__fastcall* Sexy__EndLevelDialog__EndLevelDialog_)(char*, char*, int, bool);
+char* __fastcall Sexy__EndLevelDialog__EndLevelDialog(char* this_, char* edx, int a2, bool a3)
+{
+	auto retn = Sexy__EndLevelDialog__EndLevelDialog_(this_, edx, a2, a3);
+
+	gameplay::prompted_leave = true;
+	display::can_render_text = false;
+	++player::levels_beat;
+
+	return retn;
+}
+
 void gameplay::init()
 {
-	jump(0x0045DE5C, next_board_balls_hook); //Stores balls left over to roll over into the next board
+	jump(0x0045DE5C, next_boards_balls_hook); //Stores balls left over to roll over into the next board
 	jump(0x0046FD82, purple_peg_hit_hook); //For attacks
 	jump(0x004701C8, green_peg_hit_hook); //For powerups
 	//jump(0x004A9286, 0x004A9291); //Instantly load level
-	set(0x00538241 + 0x1, "pegroyale.pak");
-	retn_value(0x00405CF0, 1000); //Max locked stage
-	retn_value(0x00405D40, 1000); //Max locked level
 
 	MH_CreateHook((void*)0x004025C0, Sexy__Board__Pause, (void**)&Sexy__Board__Pause_);
+	MH_CreateHook((void*)0x00405CF0, Sexy__ThunderballApp__GetMaxLockedStage, (void**)&Sexy__ThunderballApp__GetMaxLockedStage_);
+	MH_CreateHook((void*)0x00405D40, Sexy__ThunderballApp__GetMaxLockedLevel, (void**)&Sexy__ThunderballApp__GetMaxLockedLevel_);
+	MH_CreateHook((void*)0x0040AC40, Sexy__EndLevelDialog__EndLevelDialog, (void**)&Sexy__EndLevelDialog__EndLevelDialog_);
 
 
 	callbacks::after_begin_turn_2([](auto logic_mgr)
@@ -147,53 +171,6 @@ void gameplay::init()
 		exit(0);
 	});
 
-	//We completed a level, back out to menu to load the next level as this is a requirement
-	callbacks::on(callbacks::type::after_beat_level_true, []()
-	{
-		gameplay::prompted_leave = true;
-		display::can_render_text = false;
-		++player::levels_beat;
-		Sexy::ThunderballApp::ShowLevelScreen(true);
-	});
-
-	callbacks::on(callbacks::type::after_show_level_screen, []()
-	{
-		if (!networking::ready_up)
-		{
-			networking::ready_up = true;
-			networking::send_packet(proto_t::READY_UP);
-			networking::wait_for_others = true;
-
-			while (networking::wait_for_others) Sleep(150);
-		}
-
-		Sexy::LevelScreen::DoPlay(networking::level_order[player::levels_beat]);
-	});
-
-	//callbacks::on(callbacks::type::main_loop, []()
-	//{
-	//	static bool once = false;
-
-	//	if (networking::wait_for_others)
-	//	{
-	//		//input::move_cursor({ 0, 0 });
-
-	//		if (!once)
-	//		{
-	//			once = true;
-	//		}
-	//	}
-	//	else
-	//	{
-	//		PRINT_INFO("NO longer waiting for others");
-	//		if (once)
-	//		{
-	//			Sexy::LevelScreen::DoPlay(networking::level_order[player::levels_beat]);
-	//			once = false;
-	//		}
-	//	}
-	//});
-
 	callbacks::on(callbacks::type::do_to_menu, []()
 	{
 		if (!gameplay::prompted_leave)
@@ -202,11 +179,12 @@ void gameplay::init()
 		}
 		else if(gameplay::prompted_leave)
 		{
-			gameplay::prompted_leave = false;
+			//gameplay::prompted_leave = false;
+			Sexy::ThunderballApp::ShowLevelScreen(true);
 		}
 	});
 
-	callbacks::on(callbacks::type::show_level_screen, []()
+	callbacks::on(callbacks::type::after_show_level_screen, []()
 	{
 		if (!gameplay::prompted_leave)
 		{
@@ -214,8 +192,19 @@ void gameplay::init()
 		}
 		else if (gameplay::prompted_leave)
 		{
+			if (!networking::ready_up)
+			{
+				networking::ready_up = true;
+				networking::send_packet(proto_t::READY_UP);
+
+				while (networking::wait_for_others)
+				{
+					std::this_thread::sleep_for(150ms);
+				}
+			}
+
 			gameplay::prompted_leave = false;
-			Sexy::LevelScreen::DoPlay(-1);
+			Sexy::LevelScreen::DoPlay(networking::level_order[player::levels_beat]);
 		}
 	});
 }
