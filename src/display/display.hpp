@@ -8,7 +8,7 @@ public:
 
 	static bool can_render_text;
 	static bool ready;
-	static bool show_players;
+	static bool show_hud;
 
 private:
 	static float items_timeout;

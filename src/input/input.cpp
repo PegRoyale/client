@@ -36,6 +36,18 @@ void input::update()
 			break;
 		}
 	}
+
+	//If too big
+	if (player::attacking > networking::player_list.size() - 1)
+	{
+		player::attacking = 0;
+	}
+
+	//If too small
+	if (player::attacking < 0)
+	{
+		player::attacking = networking::player_list.size() - 1;
+	}
 }
 
 void input::key_down(SDL_Scancode scancode)
@@ -55,49 +67,19 @@ void input::key_down(SDL_Scancode scancode)
 		break;
 
 	case SDL_SCANCODE_TAB:
-		display::show_players = true;
+		display::show_hud = true;
 		break;
 
 	case SDL_SCANCODE_Q:
 		if (networking::player_list.size() == 1) return;
 
 		player::attacking--;
-
-		if (player::attacking < 0)
-		{
-			player::attacking = networking::player_list.size() - 1;
-		}
-
-		if (networking::player_list[player::attacking] == player::username)
-		{
-			player::attacking--;
-		}
-
-		if (player::attacking < 0)
-		{
-			player::attacking = networking::player_list.size() - 1;
-		}
 		break;
 
 	case SDL_SCANCODE_E:
 		if (networking::player_list.size() == 1) return;
 
 		player::attacking++;
-
-		if (player::attacking > networking::player_list.size() - 1)
-		{
-			player::attacking = 0;
-		}
-
-		if (networking::player_list[player::attacking] == player::username)
-		{
-			player::attacking++;
-		}
-
-		if (player::attacking > networking::player_list.size() - 1)
-		{
-			player::attacking = 0;
-		}
 		break;
 	}
 }
@@ -107,7 +89,7 @@ void input::key_up(SDL_Scancode scancode)
 	switch (scancode)
 	{
 	case SDL_SCANCODE_TAB:
-		display::show_players = false;
+		display::show_hud = false;
 		break;
 	}
 }
@@ -128,9 +110,12 @@ POINT input::get_cursor()
 
 void input::move_cursor(POINT p)
 {
-	RECT rect = { 0 };
-	GetWindowRect(input::hwnd, &rect);
-	SetCursorPos((rect.right - p.x) - 400, (rect.bottom - p.y)- 300);
+	if (GetFocus() == input::hwnd)
+	{
+		RECT rect = { 0 };
+		GetWindowRect(input::hwnd, &rect);
+		SetCursorPos((rect.right - p.x) - 400, (rect.bottom - p.y) - 300);
+	}
 }
 
 void input::left_click()

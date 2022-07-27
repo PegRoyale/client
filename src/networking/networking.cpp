@@ -2,6 +2,7 @@
 #include "logger/logger.hpp"
 #include "input/input.hpp"
 #include "player/player.hpp"
+#include "gameplay/gameplay.hpp"
 
 bool networking::shutdown = false;
 ENetAddress networking::address;
@@ -72,7 +73,7 @@ void networking::update()
 					case ENET_EVENT_TYPE_DISCONNECT:
 						PRINT_INFO("Disconnect from the server");
 
-						if (!networking::shutdown && player::alive)
+						if (!networking::shutdown)
 						{
 							MessageBoxA(nullptr, "Disconnected from the server!", "PegRoyale", 0);
 							exit(0);
@@ -219,6 +220,35 @@ void networking::handle_packet(ENetPacket* packet, ENetPeer* peer)
 			{
 				networking::server_alive = true;
 			} break;
+
+			case proto_t::GRANT_WINNER:
+			{
+				/*std::string winner = "UNKNOWN";
+
+				if (networking::player_list.size() == 1)
+				{
+					networking::ready_up = false;
+					networking::wait_for_others = true;
+					gameplay::prompted_leave = true;
+					Sexy::ThunderballApp::DoToMenu();
+					return;
+				}
+
+				for (auto i = 1; i < split_packet.size(); ++i)
+				{
+					if (split_packet[i].find("winner") != std::string::npos)
+					{
+						winner = logger::split(split_packet[i], "=")[1];
+						continue;
+					}
+				}
+
+				networking::ready_up = false;
+				networking::wait_for_others = true;
+				gameplay::prompted_leave = true;
+				MessageBoxA(0, logger::va("%s has won the match!", winner.c_str()).c_str(), "PegRoyale", 0);
+				Sexy::ThunderballApp::DoToMenu();*/
+			} break;
 		}
 	}
 }
@@ -227,4 +257,9 @@ void networking::check_alive()
 {
 	networking::server_alive = false;
 	networking::send_packet(proto_t::CHECK_SERVER_ALIVE);
+}
+
+void networking::reset()
+{
+	networking::level_order.clear();
 }

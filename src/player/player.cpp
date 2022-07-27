@@ -120,6 +120,7 @@ void player::activate_item(int num)
 void player::reset()
 {
 	player::multiballs = 0;
+	player::levels_beat = 0;
 }
 
 void player::adjust_ball_count(int count, const std::string& player)

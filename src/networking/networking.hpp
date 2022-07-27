@@ -15,7 +15,10 @@ enum class proto_t
 	ROOMS_FULL,
 	ALREADY_IN_GAME,
 	CHECK_SERVER_ALIVE,
+	INVALID_KEY,
+	GRANT_WINNER,
 };
+
 
 class networking final
 {
@@ -27,6 +30,7 @@ public:
 	static void create_room(const std::string& roomid, const std::string& key);
 	static void handle_packet(ENetPacket* packet, ENetPeer* peer);
 	static void check_alive();
+	static void reset();
 
 	static bool shutdown;
 	static bool ready_up;

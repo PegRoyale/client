@@ -6,7 +6,7 @@
 #include "networking/networking.hpp"
 #include "input/input.hpp"
 
-int gameplay::balls_left = 10;
+int gameplay::balls_left = 20;
 Sexy::PhysObj* gameplay::last_phys_obj;
 Sexy::Ball* gameplay::last_ball;
 bool gameplay::prompted_leave = true;
@@ -14,6 +14,7 @@ bool gameplay::prompted_leave = true;
 void __declspec(naked) next_boards_balls_hook()
 {
 	static constexpr std::uint32_t retn_addr = 0x0045DE61;
+
 	__asm
 	{
 		mov eax, gameplay::balls_left;
@@ -114,6 +115,12 @@ int __fastcall Sexy__ThunderballApp__GetMaxLockedLevel(Sexy::ThunderballApp* thi
 	return 1000;
 }
 
+static bool(__fastcall* Sexy__ThunderballApp__CheckSaveGame_)(Sexy::ThunderballApp*, char*, bool a2);
+bool __fastcall Sexy__ThunderballApp__CheckSaveGame(Sexy::ThunderballApp* this_, char* edx, bool a2)
+{
+	return 0;
+}
+
 static char*(__fastcall* Sexy__EndLevelDialog__EndLevelDialog_)(char*, char*, int, bool);
 char* __fastcall Sexy__EndLevelDialog__EndLevelDialog(char* this_, char* edx, int a2, bool a3)
 {
@@ -122,6 +129,12 @@ char* __fastcall Sexy__EndLevelDialog__EndLevelDialog(char* this_, char* edx, in
 	gameplay::prompted_leave = true;
 	display::can_render_text = false;
 	++player::levels_beat;
+
+	gameplay::balls_left += 3;
+
+	Sexy::Board::Clear(0);
+	Sexy::ThunderballApp::DoToMenu();
+	Sexy::ThunderballApp::ShowLevelScreen(true);
 
 	return retn;
 }
@@ -137,14 +150,15 @@ void gameplay::init()
 	MH_CreateHook((void*)0x00405CF0, Sexy__ThunderballApp__GetMaxLockedStage, (void**)&Sexy__ThunderballApp__GetMaxLockedStage_);
 	MH_CreateHook((void*)0x00405D40, Sexy__ThunderballApp__GetMaxLockedLevel, (void**)&Sexy__ThunderballApp__GetMaxLockedLevel_);
 	MH_CreateHook((void*)0x0040AC40, Sexy__EndLevelDialog__EndLevelDialog, (void**)&Sexy__EndLevelDialog__EndLevelDialog_);
-
+	MH_CreateHook((void*)0x004306E0, Sexy__ThunderballApp__CheckSaveGame, (void**)&Sexy__ThunderballApp__CheckSaveGame_);
 
 	callbacks::after_begin_turn_2([](auto logic_mgr)
 	{
 		Sexy::LogicMgr_* logic_mgr_ = (Sexy::LogicMgr_*)logic_mgr;
 
-		std::uint32_t ptr_ = *(std::uint32_t*)&logic_mgr_->data[284];
-		int balls_left = *(std::uint32_t*)&logic_mgr_->data[4 * ptr_ + 368];
+		std::uint32_t ptr_ = *(std::uint32_t*)&logic_mgr_->padding_0[284];
+		int balls_left = *(std::uint32_t*)&logic_mgr_->padding_0[4 * ptr_ + 368];
+
 		gameplay::balls_left = balls_left;
 	});
 
@@ -167,20 +181,15 @@ void gameplay::init()
 		player::alive = false;
 		gameplay::reset();
 		networking::send_packet(proto_t::DIED);
-		MessageBoxA(nullptr, "Game Over!", "PegRoyale", 0);
-		exit(0);
+		gameplay::prompted_leave = true;
+		Sexy::ThunderballApp::DoToMenu();
 	});
 
-	callbacks::on(callbacks::type::do_to_menu, []()
+	callbacks::on(callbacks::type::after_do_to_menu, []()
 	{
 		if (!gameplay::prompted_leave)
 		{
 			exit(0);
-		}
-		else if(gameplay::prompted_leave)
-		{
-			//gameplay::prompted_leave = false;
-			Sexy::ThunderballApp::ShowLevelScreen(true);
 		}
 	});
 
@@ -196,22 +205,38 @@ void gameplay::init()
 			{
 				networking::ready_up = true;
 				networking::send_packet(proto_t::READY_UP);
-
-				while (networking::wait_for_others)
-				{
-					std::this_thread::sleep_for(150ms);
-				}
 			}
+			else
+			{
+				gameplay::prompted_leave = false;
+				Sexy::LevelScreen::DoPlay(networking::level_order[player::levels_beat]);
+			}
+		}
+	});
 
-			gameplay::prompted_leave = false;
-			Sexy::LevelScreen::DoPlay(networking::level_order[player::levels_beat]);
+
+	static bool once = true;
+	callbacks::on(callbacks::type::main_loop, []()
+	{
+		if (networking::ready_up)
+		{
+			if (networking::wait_for_others)
+			{
+				input::move_cursor({ 0, -150 });
+			}
+			else if (!networking::wait_for_others && once)
+			{
+				gameplay::prompted_leave = false;
+				Sexy::LevelScreen::DoPlay(networking::level_order[0]);
+				once = false;
+			}
 		}
 	});
 }
 
 void gameplay::reset()
 {
-	gameplay::balls_left = 10;
-	display::can_render_text = false;
+	gameplay::balls_left = 20;
 	player::reset();
+	networking::reset();
 }

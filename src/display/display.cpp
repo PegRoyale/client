@@ -7,7 +7,7 @@
 bool display::can_render_text = false;
 bool display::ready = false;
 float display::items_timeout;
-bool display::show_players = false;
+bool display::show_hud = false;
 
 static int(__fastcall* Sexy__FloatingTextMgr__AddText_)(char*, char*);
 int __fastcall Sexy__FloatingTextMgr__AddText(char* this_, char* edx)
@@ -100,9 +100,18 @@ void display::update()
 	{
 		if (display::can_render_text)
 		{
-			if (display::items_timeout < 200.0f)
-			{
+			Sexy::FloatingText_* header = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
+							Sexy::Format("%s", networking::player_list[player::attacking].c_str()),
+							500.0f,
+							-15.0f,
+							14
+			);
+			header->unk_1 = 1;
+			header->float_offset_start = 0.0f;
+			header->color = 0xFF2929;
 
+			if (display::items_timeout < 200.0f || display::show_hud)
+			{
 				Sexy::FloatingText_* header = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
 							Sexy::Format("Items:"),
 							110.0f,
@@ -141,7 +150,7 @@ void display::update()
 				++display::items_timeout;
 			}
 
-			if (display::show_players)
+			if (display::show_hud)
 			{
 				Sexy::FloatingText_* header = (Sexy::FloatingText_*)Sexy::LogicMgr::AddStandardText(
 								Sexy::Format("Players:"),
